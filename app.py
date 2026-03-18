@@ -4,14 +4,14 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-st.set_page_config(page_title='CVICU HemoTrend Pro', page_icon='🫀', layout='wide')
-st.title('🫀 CVICU HemoTrend Pro 2.0')
-st.markdown('*Advanced Hemodynamic Intelligence | Patrick Whittenburg RN*')
+st.set_page_config(page_title="CVICU HemoTrend Pro", page_icon="🫀", layout="wide")
+st.title("🫀 CVICU HemoTrend Pro 2.0")
+st.markdown("*Advanced Hemodynamic Intelligence | Patrick Whittenburg RN*")
 
-tab1, tab2, tab3, tab4 = st.tabs(['📊 Dashboard', '🩸 ECMO', '💉 Drips', '⚙️ Settings'])
+tab1, tab2, tab3 = st.tabs(["Dashboard", "ECMO", "Drips"])
 
 with tab1:
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3
     cvp = col1.number_input('CVP (mmHg)', 0.0, 50.0, 12.0)
     ci = col2.number_input('Cardiac Index', 0.0, 10.0, 2.8)
     svr = col3.number_input('SVR', 0, 3000, 1200)
