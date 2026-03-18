@@ -5,6 +5,9 @@ import numpy as np
 from datetime import datetime
 import openai  # New: For full AI
 
+# MUST be first Streamlit command
+st.set_page_config(layout="wide")
+
 # Custom CSS with sound-ready elements
 st.markdown("""
     <style>
@@ -16,7 +19,6 @@ st.markdown("""
     </style>
 """, unsafe_allowhtml=True)
 
-st.set_page_config(layout="wide")
 st.title("🤖 HemoTrend Pro v7 - Full AI CVICU Assistant")
 
 # Initialize OpenAI client (add to .streamlit/secrets.toml: OPENAI_API_KEY = "sk-...")
@@ -87,7 +89,7 @@ with col1:
 
     risk_score = (2 if cvp >= 18 else 0) + (3 if ci <= 2.2 else 0) + (2 if svr <= 800 or svr >= 1600 else 0) + (3 if lactate >= 2 else 0)
     st.metric("Risk Score", f"{risk_score}/10", on_change=play_click_sound)
-    st.metric("Stability", f"{95 - risk_score * 3:.0f}%", on_change=play_click_sound)
+    st.metric("Stability", f"{95 - risk_score * 3:.0f}%,", on_change=play_click_sound)
 
 with col2:
     st.header("📈 24hr Trends")
