@@ -3,7 +3,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import openai  # New: For full AI
+import openai
 
 # MUST be first Streamlit command
 st.set_page_config(layout="wide")
@@ -21,14 +21,21 @@ st.markdown("""
 
 st.title("🤖 HemoTrend Pro v7 - Full AI CVICU Assistant")
 
-# Initialize OpenAI client (add to .streamlit/secrets.toml: OPENAI_API_KEY = "sk-...")
+# Initialize OpenAI client safely
 @st.cache_resource
 def get_openai_client():
-    return openai.OpenAI(api_key=st.secrets.get("OPENAI_API_KEY"))
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY")
+        if not api_key:
+            return None
+        return openai.OpenAI(api_key=api_key)
+    except Exception as e:
+        st.warning(f"OpenAI setup failed: {e}")
+        return None
 
 client = get_openai_client()
 
-# Sound helper (add 'click.mp3' to your app folder - free from freesound.org)
+# Sound helper
 def play_click_sound():
     click_html = """
     <audio id="clickSound" preload="auto">
@@ -49,8 +56,12 @@ if "messages" not in st.session_state:
 # Sidebar: Enhanced AI Chat
 with st.sidebar:
     st.header("🧠 AI Chat - Ask Anything")
+    
+    if client is None:
+        st.error("⚠️ OPENAI_API_KEY not configured. See setup instructions below.")
+    
     # Display chat messages
-    for message in st.session_state.messages[1:]:  # Skip system
+    for message in st.session_state.messages[1:]:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
@@ -59,26 +70,32 @@ with st.sidebar:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
-            play_click_sound()  # Sound on send
+            play_click_sound()
 
-        # Generate AI response
-        with st.chat_message("assistant"):
-            message_placeholder = st.empty()
-            full_response = ""
-            with st.spinner("AI thinking..."):
-                for chunk in client.chat.completions.create(
-                    model="gpt-4o-mini",  # Or gpt-3.5-turbo
-                    messages=st.session_state.messages,
-                    stream=True
-                ):
-                    if chunk.choices[0].delta.content is not None:
-                        full_response += chunk.choices[0].delta.content
-                        message_placeholder.markdown(full_response + "▌")
-            message_placeholder.markdown(full_response)
-            play_click_sound()  # Sound on response
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        if client is not None:
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                full_response = ""
+                with st.spinner("AI thinking..."):
+                    try:
+                        for chunk in client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=st.session_state.messages,
+                            stream=True
+                        ):
+                            if chunk.choices[0].delta.content is not None:
+                                full_response += chunk.choices[0].delta.content
+                                message_placeholder.markdown(full_response + "▌")
+                        message_placeholder.markdown(full_response)
+                        play_click_sound()
+                        st.session_state.messages.append({"role": "assistant", "content": full_response})
+                    except Exception as e:
+                        st.error(f"OpenAI Error: {str(e)}")
+        else:
+            with st.chat_message("assistant"):
+                st.error("❌ OpenAI API key not configured")
 
-# Main dashboard - preserved + sounds
+# Main dashboard
 col1, col2 = st.columns(2)
 with col1:
     st.header("📊 Live Vitals")
@@ -89,7 +106,7 @@ with col1:
 
     risk_score = (2 if cvp >= 18 else 0) + (3 if ci <= 2.2 else 0) + (2 if svr <= 800 or svr >= 1600 else 0) + (3 if lactate >= 2 else 0)
     st.metric("Risk Score", f"{risk_score}/10", on_change=play_click_sound)
-    st.metric("Stability", f"{95 - risk_score * 3:.0f}%,", on_change=play_click_sound)
+    st.metric("Stability", f"{95 - risk_score * 3:.0f}%", on_change=play_click_sound)
 
 with col2:
     st.header("📈 24hr Trends")
@@ -107,6 +124,35 @@ with col2:
 st.markdown("---")
 st.caption("No PHI. Patrick Whittenburg RN v7.0 - Full AI + Sounds 🚀")
 
-# Experimental: Global click sound button for testing
 if st.button("Test Click Sound", on_click=play_click_sound):
     st.balloons()
+
+# Setup Instructions
+with st.expander("🔧 Setup Instructions - OpenAI API"):
+    st.markdown("""
+    ### How to Configure OpenAI API Key
+    
+    ✅ **Your API key has been configured on Streamlit Cloud!**
+    
+    Your app should now be working with the OpenAI AI chat feature.
+    
+    If you need to update the key in the future:
+    
+    1. **Go to Streamlit Cloud Settings:**
+       - Visit https://share.streamlit.io
+       - Click on your app
+       - Click "Settings" (⚙️)
+       - Go to "Secrets"
+    
+    2. **Update the API Key:**
+       ```
+       OPENAI_API_KEY = "your-new-key-here"
+       ```
+    
+    3. **For Local Testing:**
+       - Create `.streamlit/secrets.toml` in your project
+       - Add: `OPENAI_API_KEY = "your-key-here"`
+       - Run: `streamlit run of.py`
+    
+    ⚠️ **Important:** Never commit your API key to GitHub!
+    """)
