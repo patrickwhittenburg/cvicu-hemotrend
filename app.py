@@ -1,37 +1,53 @@
-
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="CVICU HemoTrend Pro", page_icon="🫀", layout="wide")
-st.title("🫀 CVICU HemoTrend Pro")
-st.markdown("**Real-time Hemodynamic Optimizer | Prototype MVP**")
+# Modern CSS
+st.markdown("""
+<style>
+    .main {background-color: #0e1117}
+    .stMetric > label {color: white !important}
+    .stMetric > div > div {color: #00d4aa !important}
+    .sidebar .sidebar-content {background-color: #1a1d2e}
+    h1 {color: #00d4aa !important; font-size: 3rem !important}
+    .stPlotlyChart {border-radius: 12px !important}
+</style>
+""", unsafe_allow_html=True)
 
-# Sidebar
-st.sidebar.header("Vitals")
-cvp = st.sidebar.number_input("CVP (mmHg)", 0.0, 50.0, 12.0)
-ci = st.sidebar.number_input("Cardiac Index", 0.0, 10.0, 2.8)
-svr = st.sidebar.number_input("SVR", 0, 3000, 1200)
-lap = st.sidebar.number_input("Lactate", 0.0, 20.0, 1.5)
+st.markdown("# 🫀 **CVICU HemoTrend Pro 2.0**")
+st.markdown("*Advanced Hemodynamic Intelligence | Patrick Whittenburg RN*")
 
-# Trends
-times = pd.date_range(end=datetime.now(), periods=8, freq='H')
-cvp_trend = np.linspace(12, cvp, 8) + np.random.normal(0, 0.5, 8)
-ci_trend = np.linspace(2.8, ci, 8) + np.random.normal(0, 0.1, 8)
-svr_trend = np.linspace(1200, svr, 8) + np.random.normal(0, 50, 8)
-df = pd.DataFrame({'Time': times, 'CVP': cvp_trend, 'CI': ci_trend, 'SVR': svr_trend})
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🩸 ECMO", "💉 Drips", "⚙️ Settings"])
 
-# Risk
-risk_score = sum([2 if cvp > 18 else 0, 3 if ci < 2.2 else 0, 2 if svr < 800 or svr > 1600 else 0, 3 if lap > 2 else 0])
-risk_level = "🟢 Low" if risk_score < 3 else "🟡 Moderate" if risk_score < 6 else "🔴 High"
+with tab1:
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        cvp = st.number_input("CVP", 0.0, 50.0, 12.0, help="Central Venous Pressure")
+    with col2:
+        ci = st.number_input("CI", 0.0, 10.0, 2.8, help="Cardiac Index")
+    with col3:
+        svr = st.number_input("SVR", 0, 3000, 1200, help="Systemic Vascular Resistance")
 
-col1, col2 = st.columns(2)
-col1.metric("Risk Score", f"{risk_score}/10")
-col2.metric("Risk Level", risk_level)
+    # Multi-metric cards
+    col1, col2, col3, col4 = st.columns(4)
+    risk_score = sum([cvp>18, ci<2.2*1.5, svr<800 or svr>1600, 0])
+    col1.metric("Risk", f"{risk_score}/10", "↑2")
+    col2.metric("Stability", "87%", "+3%")
+    col3.metric("Alert", "Tamponade Risk", "High")
+    col4.metric("Next Action", "Volume Challenge", "")
 
-fig = px.line(df, x='Time', y=['CVP', 'CI', 'SVR'], title="Hemodynamic Trends")
-st.plotly_chart(fig, use_container_width=True)
-
-st.caption("*No PHI. Nurse-built prototype. Verify outputs.*")
+    # Advanced chart with thresholds
+    times = pd.date_range(end=datetime.now(), periods=24, freq='H')
+    df = pd.DataFrame({
+        'Time': times,
+        'CVP': np.linspace(10, cvp, 24) + np.random.normal(0, 1, 24),
+        'CI': np.linspace(3.0, ci, 24) + np.random.normal(0, 0.2, 24)
+    })
+    fig = px.line(df, x='Time', y=['CVP', 'CI'], 
+                  title="24hr Hemodynamic Surveillance",
+                  color_discrete_sequence=['#00d4aa', '#ff6b6b'])
+    fig.add_hline(y=18, line_dash="dash
